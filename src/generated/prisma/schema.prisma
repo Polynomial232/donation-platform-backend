@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum donation_status {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+enum transaction_status {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum overlay_type {
+  ALERT
+  GOAL
+  EVENT_LIST
+}
+
+enum queue_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model user {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  username     String  @unique
+  password     String
+  display_name String?
+  avatar_url   String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Relations
+  profile            profile?
+  donations          donation[] @relation("DonorRelation")
+  received_donations donation[] @relation("RecipientRelation")
+  overlays           overlay[]
+  goals              goal[]
+
+  @@map("users")
+}
+
+model profile {
+  id                    String  @id @default(cuid())
+  user_id               String  @unique
+  user                  user    @relation(fields: [user_id], references: [id])
+  bio                   String?
+  xendit_api_key        String?
+  notification_settings Json?
+  social_links          Json?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@map("profiles")
+}
+
+model donation {
+  id             String          @id @default(cuid())
+  external_id    String          @unique
+  amount         Decimal         @db.Decimal(12, 2)
+  currency       String          @default("IDR")
+  donor_name     String
+  message        String?
+  status         donation_status @default(PENDING)
+  payment_url    String?
+  payment_method String?
+
+  recipient_id String
+  recipient    user   @relation("RecipientRelation", fields: [recipient_id], references: [id])
+
+  donor_id String?
+  donor    user?   @relation("DonorRelation", fields: [donor_id], references: [id])
+
+  media_type String?
+  media_url  String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  transactions transaction[]
+
+  @@map("donations")
+}
+
+model transaction {
+  id           String             @id @default(cuid())
+  donation_id  String
+  donation     donation           @relation(fields: [donation_id], references: [id])
+  amount       Decimal            @db.Decimal(12, 2)
+  currency     String             @default("IDR")
+  status       transaction_status @default(PENDING)
+  reference_id String?            @unique // Provider reference (e.g., Xendit ID)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@map("transactions")
+}
+
+model overlay {
+  id        String       @id @default(cuid())
+  user_id   String
+  user      user         @relation(fields: [user_id], references: [id])
+  type      overlay_type
+  name      String
+  config    Json
+  token     String       @unique
+  is_active Boolean      @default(true)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@map("overlays")
+}
+
+model goal {
+  id             String    @id @default(cuid())
+  user_id        String
+  user           user      @relation(fields: [user_id], references: [id])
+  title          String
+  target_amount  Decimal   @db.Decimal(12, 2)
+  current_amount Decimal   @default(0) @db.Decimal(12, 2)
+  start_date     DateTime  @default(now())
+  end_date       DateTime?
+  is_active      Boolean   @default(true)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@map("goals")
+}
+
+model api_queue {
+  id          String       @id @default(cuid())
+  url         String
+  method      String       @default("POST")
+  headers     Json?
+  body        Json?
+  status      queue_status @default(PENDING)
+  type        String // e.g., 'WEBHOOK_OUT', 'NOTIFICATION'
+  retry_count Int          @default(0)
+  max_retries Int          @default(3)
+  last_error  String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@map("api_queues")
+}
+
+model api_callback {
+  id          String @id @default(cuid())
+  source      String // e.g., 'XENDIT'
+  event_type  String
+  payload     Json
+  headers     Json?
+  status_code Int?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@map("api_callbacks")
+}
