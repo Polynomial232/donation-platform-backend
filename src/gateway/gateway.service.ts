@@ -34,8 +34,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
 
         if (overlay) {
-            client.join(`overlay_${overlay.user_id}`);
-            console.log(`Client ${client.id} subscribed to user ${overlay.user_id}`);
+            client.join(`overlay_${overlay.userId}`);
+            console.log(`Client ${client.id} subscribed to user ${overlay.userId}`);
             return { status: 'ok' };
         }
 

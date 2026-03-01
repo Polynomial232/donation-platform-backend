@@ -1,6 +1,6 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, Res, Param, HttpStatus } from '@nestjs/common';
 import { DiscoveryService } from './discovery.service';
-import { SearchCreatorsDto } from './dto/discovery.dto';
+import { SearchCreatorsDto, ListCreatorsDto } from './dto/discovery.dto';
 import * as express from 'express';
 import { ResponseHelper } from '../common/helpers/response.helper';
 
@@ -52,6 +52,45 @@ export class DiscoveryController {
         } catch (error) {
             return ResponseHelper.error(res, {
                 message: error.message || 'Failed to search creators',
+            });
+        }
+    }
+
+    @Get('creators')
+    async listCreators(
+        @Query() dto: ListCreatorsDto,
+        @Res({ passthrough: true }) res: express.Response,
+    ) {
+        try {
+            const { data, meta } = await this.discoveryService.listCreators(dto);
+            return ResponseHelper.success(res, {
+                data: data,
+                metadata: meta,
+                message: 'Creators retrieved successfully',
+            });
+        } catch (error) {
+            return ResponseHelper.error(res, {
+                message: error.message || 'Failed to retrieve creators',
+            });
+        }
+    }
+
+    @Get('creators/:username')
+    async getCreatorByUsername(
+        @Param('username') username: string,
+        @Res({ passthrough: true }) res: express.Response,
+    ) {
+        try {
+            const creatorDetail = await this.discoveryService.getCreatorByUsername(username);
+            return ResponseHelper.success(res, {
+                data: creatorDetail,
+                message: 'Creator detail retrieved successfully',
+            });
+        } catch (error) {
+            const status = error.message === 'Creator not found' ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
+            return ResponseHelper.error(res, {
+                message: error.message || 'Failed to retrieve creator detail',
+                status,
             });
         }
     }

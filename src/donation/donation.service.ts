@@ -29,13 +29,13 @@ export class DonationService {
         // Create donation record in PENDING state
         const donation = await this.prisma.donation.create({
             data: {
-                external_id,
+                externalId: external_id,
                 amount: dto.amount,
-                donor_name: dto.donor_name,
+                donorName: dto.donor_name,
                 message: dto.message,
-                recipient_id: dto.recipient_id,
-                media_url: dto.media_url,
-                media_type: dto.media_type,
+                recipientId: dto.recipient_id,
+                mediaUrl: dto.media_url,
+                mediaType: dto.media_type,
                 status: DonationStatus.PENDING,
             },
         });
@@ -44,14 +44,14 @@ export class DonationService {
         const invoice = await this.xendit.createInvoice({
             externalId: external_id,
             amount: dto.amount,
-            description: `Donation to ${recipient.display_name} from ${dto.donor_name}`,
+            description: `Donation to ${recipient.displayName} from ${dto.donor_name}`,
         });
 
         // Update donation with payment URL
         return this.prisma.donation.update({
             where: { id: donation.id },
             data: {
-                payment_url: (invoice as any).invoiceUrl,
+                paymentUrl: (invoice as any).invoiceUrl,
             },
         });
     }
@@ -69,7 +69,7 @@ export class DonationService {
         }
 
         const donation = await this.prisma.donation.update({
-            where: { external_id: external_id },
+            where: { externalId: external_id },
             data: { status: donationStatus },
         });
 
@@ -78,25 +78,25 @@ export class DonationService {
             console.log(`Donation ${donation.id} successful! Triggering alerts...`);
 
             // Send WebSocket event
-            this.gateway.sendNewDonation(donation.recipient_id, {
-                donor_name: donation.donor_name,
+            this.gateway.sendNewDonation(donation.recipientId, {
+                donor_name: donation.donorName,
                 amount: Number(donation.amount),
                 message: donation.message,
-                media_url: donation.media_url,
-                media_type: donation.media_type,
+                media_url: donation.mediaUrl,
+                media_type: donation.mediaType,
             });
 
             // Update goal
             const updatedGoal = await this.goalService.incrementProgress(
-                donation.recipient_id,
+                donation.recipientId,
                 Number(donation.amount),
             );
 
             if (updatedGoal) {
-                this.gateway.sendGoalUpdate(donation.recipient_id, {
+                this.gateway.sendGoalUpdate(donation.recipientId, {
                     goalId: updatedGoal.id,
-                    current_amount: Number(updatedGoal.current_amount),
-                    percentage: (Number(updatedGoal.current_amount) / Number(updatedGoal.target_amount)) * 100,
+                    current_amount: Number(updatedGoal.currentAmount),
+                    percentage: (Number(updatedGoal.currentAmount) / Number(updatedGoal.targetAmount)) * 100,
                 });
             }
         }
@@ -111,16 +111,16 @@ export class DonationService {
         const [data, total] = await Promise.all([
             this.prisma.donation.findMany({
                 where: {
-                    recipient_id: userId,
+                    recipientId: userId,
                     status: status as any,
                 },
-                orderBy: { created_at: 'desc' },
+                orderBy: { createdAt: 'desc' },
                 skip: Number(skip),
                 take: Number(limit),
             }),
             this.prisma.donation.count({
                 where: {
-                    recipient_id: userId,
+                    recipientId: userId,
                     status: status as any,
                 },
             }),

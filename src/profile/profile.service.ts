@@ -28,12 +28,12 @@ export class ProfileService {
                 id: userId,
             },
             data: {
-                display_name,
+                displayName: display_name,
                 profile: {
                     update: {
                         bio,
-                        notification_settings,
-                        social_links,
+                        notificationSettings: notification_settings,
+                        socialLinks: social_links,
                     },
                 },
             },

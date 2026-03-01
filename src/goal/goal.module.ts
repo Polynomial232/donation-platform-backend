@@ -4,6 +4,7 @@ import { GoalController } from './goal.controller';
 
 @Module({
   providers: [GoalService],
-  controllers: [GoalController]
+  controllers: [GoalController],
+  exports: [GoalService],
 })
-export class GoalModule {}
+export class GoalModule { }

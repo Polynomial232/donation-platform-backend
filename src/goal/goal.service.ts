@@ -5,43 +5,43 @@ import { PrismaService } from '../prisma/prisma.service';
 export class GoalService {
     constructor(private prisma: PrismaService) { }
 
-    async createGoal(user_id: string, data: any) {
+    async createGoal(userId: string, data: any) {
         return this.prisma.goal.create({
             data: {
                 ...data,
-                user_id,
+                userId,
             },
         });
     }
 
-    async getGoals(user_id: string) {
+    async getGoals(userId: string) {
         return this.prisma.goal.findMany({
-            where: { user_id },
+            where: { userId },
         });
     }
 
-    async getActiveGoal(user_id: string) {
+    async getActiveGoal(userId: string) {
         return this.prisma.goal.findFirst({
-            where: { user_id, is_active: true },
-            orderBy: { created_at: 'desc' },
+            where: { userId, isActive: true },
+            orderBy: { createdAt: 'desc' },
         });
     }
 
-    async updateGoal(id: string, user_id: string, data: any) {
+    async updateGoal(id: string, userId: string, data: any) {
         return this.prisma.goal.updateMany({
-            where: { id, user_id },
+            where: { id, userId },
             data,
         });
     }
 
-    async incrementProgress(user_id: string, amount: number) {
-        const activeGoal = await this.getActiveGoal(user_id);
+    async incrementProgress(userId: string, amount: number) {
+        const activeGoal = await this.getActiveGoal(userId);
         if (!activeGoal) return null;
 
         return this.prisma.goal.update({
             where: { id: activeGoal.id },
             data: {
-                current_amount: {
+                currentAmount: {
                     increment: amount,
                 },
             },

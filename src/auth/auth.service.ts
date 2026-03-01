@@ -22,7 +22,7 @@ export class AuthService {
                     email: dto.email,
                     username: dto.username,
                     password: hashedPassword,
-                    display_name: dto.display_name,
+                    displayName: dto.display_name,
                     profile: {
                         create: {},
                     },

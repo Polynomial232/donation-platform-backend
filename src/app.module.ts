@@ -10,6 +10,7 @@ import { XenditModule } from './xendit/xendit.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { OverlayModule } from './overlay/overlay.module';
 import { GoalModule } from './goal/goal.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { GoalModule } from './goal/goal.module';
     GatewayModule,
     OverlayModule,
     GoalModule,
+    DiscoveryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

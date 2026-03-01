@@ -6,19 +6,19 @@ import { v4 as uuidv4 } from 'uuid';
 export class OverlayService {
     constructor(private prisma: PrismaService) { }
 
-    async createOverlay(user_id: string, data: any) {
+    async createOverlay(userId: string, data: any) {
         return this.prisma.overlay.create({
             data: {
                 ...data,
-                user_id,
+                userId,
                 token: uuidv4(),
             },
         });
     }
 
-    async getOverlays(user_id: string) {
+    async getOverlays(userId: string) {
         return this.prisma.overlay.findMany({
-            where: { user_id },
+            where: { userId },
         });
     }
 
@@ -28,9 +28,9 @@ export class OverlayService {
         });
     }
 
-    async updateOverlay(id: string, user_id: string, data: any) {
+    async updateOverlay(id: string, userId: string, data: any) {
         return this.prisma.overlay.updateMany({
-            where: { id, user_id },
+            where: { id, userId },
             data,
         });
     }

@@ -3,7 +3,6 @@ import * as express from 'express';
 
 export interface ApiResponse<T = any> {
     success: boolean;
-    status: number;
     message: string;
     data: T;
     metadata: any;
@@ -27,7 +26,6 @@ export class ResponseHelper {
         res.status(status);
         return {
             success: true,
-            status,
             message,
             data,
             metadata,
@@ -49,7 +47,6 @@ export class ResponseHelper {
         res.status(status);
         return {
             success: false,
-            status,
             message,
             data,
             metadata: null,
