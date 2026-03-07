@@ -46,7 +46,7 @@ enum QueueStatus {
 }
 
 model User {
-  id          String    @id @default(cuid())
+  id          String    @id @default(dbgenerated("gen_random_uuid()"))
   email       String    @unique
   username    String    @unique
   password    String
@@ -58,34 +58,17 @@ model User {
   deletedAt   DateTime? @map("deleted_at")
   
   // Relations
-  profile     Profile?
   creator     Creator?
   donations   Donation[] @relation("DonorRelation")
   follows     Follow[]
   overlays    Overlay[]
-  goals       Goal[]
 
   @@map("users")
 }
 
-model Profile {
-  id                   String   @id @default(cuid())
-  userId               String   @unique @map("user_id")
-  user                 User     @relation(fields: [userId], references: [id])
-  bio                  String?
-  xenditApiKey         String?  @map("xendit_api_key")
-  notificationSettings Json?    @map("notification_settings")
-  socialLinks          Json?    @map("social_links")
-
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  deletedAt            DateTime? @map("deleted_at")
-
-  @@map("profiles")
-}
 
 model Creator {
-  id                String    @id @default(cuid())
+  id                String    @id @default(dbgenerated("gen_random_uuid()"))
   userId            String    @unique @map("user_id")
   user              User      @relation(fields: [userId], references: [id])
   username          String    @unique
@@ -100,6 +83,14 @@ model Creator {
   followers         Follow[]
   receivedDonations Donation[] @relation("RecipientRelation")
   sections          CreatorSection[]
+  achievements      CreatorAchievement[]
+  goals             Goal[]
+  settings          CreatorSetting?
+  soundBoard        SoundBoard[]
+
+  xenditApiKey         String?  @map("xendit_api_key")
+  notificationSettings Json?    @map("notification_settings")
+  socialLinks          Json?    @map("social_links")
   
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
@@ -109,14 +100,14 @@ model Creator {
 }
 
 model CreatorSection {
-  id         String   @id @default(cuid())
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
   creatorId  String   @map("creator_id")
   creator    Creator  @relation(fields: [creatorId], references: [id])
   type       String
   title      String
-  isEnabled  Boolean  @default(true) @map("is_enabled")
+  isEnabled  Boolean? @map("is_enabled")
   data       Json
-  rowOrder   Int      @default(0) @map("row_order")
+  rowOrder   Int?     @map("row_order")
   
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -125,7 +116,7 @@ model CreatorSection {
 }
 
 model Category {
-  id         String    @id @default(cuid())
+  id         String    @id @default(dbgenerated("gen_random_uuid()"))
   name       String    @unique
   creators   Creator[]
   
@@ -136,7 +127,7 @@ model Category {
 }
 
 model Follow {
-  id         String   @id @default(cuid())
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
   userId     String   @map("user_id")
   user       User     @relation(fields: [userId], references: [id])
   creatorId  String   @map("creator_id")
@@ -149,7 +140,7 @@ model Follow {
 }
 
 model Donation {
-  id            String         @id @default(cuid())
+  id            String         @id @default(dbgenerated("gen_random_uuid()"))
   externalId    String         @unique @map("external_id")
   amount        Decimal        @db.Decimal(12, 2)
   currency      String         @default("IDR")
@@ -168,17 +159,23 @@ model Donation {
   mediaType     String?        @map("media_type")
   mediaUrl      String?        @map("media_url")
   
+  isPinned      Boolean        @default(false) @map("is_pinned")
+  
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   deletedAt     DateTime?      @map("deleted_at")
 
   transactions  Transaction[]
-
+  
+  goalId        String?        @map("goal_id")
+  goal          Goal?          @relation(fields: [goalId], references: [id])
+  
+  @@index([recipientId, isPinned])
   @@map("donations")
 }
 
 model Transaction {
-  id          String            @id @default(cuid())
+  id          String            @id @default(dbgenerated("gen_random_uuid()"))
   donationId  String            @map("donation_id")
   donation    Donation          @relation(fields: [donationId], references: [id])
   amount      Decimal           @db.Decimal(12, 2)
@@ -194,7 +191,7 @@ model Transaction {
 }
 
 model Overlay {
-  id        String      @id @default(cuid())
+  id        String      @id @default(dbgenerated("gen_random_uuid()"))
   userId    String      @map("user_id")
   user      User        @relation(fields: [userId], references: [id])
   type      OverlayType
@@ -211,9 +208,9 @@ model Overlay {
 }
 
 model Goal {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
-  user          User      @relation(fields: [userId], references: [id])
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  creatorId     String    @map("creator_id")
+  creator       Creator   @relation(fields: [creatorId], references: [id])
   title         String
   targetAmount  Decimal   @db.Decimal(12, 2) @map("target_amount")
   currentAmount Decimal   @db.Decimal(12, 2) @default(0) @map("current_amount")
@@ -221,6 +218,8 @@ model Goal {
   endDate       DateTime? @map("end_date")
   isActive      Boolean   @default(true) @map("is_active")
   
+  donations     Donation[]
+
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
@@ -229,7 +228,7 @@ model Goal {
 }
 
 model SiteSetting {
-  id          String   @id @default(cuid())
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
   key         String   @unique
   value       Json
   description String?
@@ -241,7 +240,7 @@ model SiteSetting {
 }
 
 model ApiQueue {
-  id         String      @id @default(cuid())
+  id         String      @id @default(dbgenerated("gen_random_uuid()"))
   url        String
   method     String      @default("POST")
   headers    Json?
@@ -260,7 +259,7 @@ model ApiQueue {
 }
 
 model ApiCallback {
-  id         String    @id @default(cuid())
+  id         String    @id @default(dbgenerated("gen_random_uuid()"))
   source     String
   eventType  String    @map("event_type")
   payload    Json
@@ -274,3 +273,99 @@ model ApiCallback {
   @@map("api_callbacks")
 }
 
+model Achievement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
+  name        String   @unique
+  description String?
+  imageUrl    String?  // Image URL
+  category    String?  // e.g., 'DONATION', 'STREAK', 'MILESTONE'
+  
+  creators    CreatorAchievement[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("achievements")
+}
+
+model CreatorAchievement {
+  id            String   @id @default(dbgenerated("gen_random_uuid()"))
+  creatorId     String   @map("creator_id")
+  creator       Creator  @relation(fields: [creatorId], references: [id])
+  achievementId String   @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  
+  earnedAt      DateTime @default(now()) @map("earned_at")
+
+  @@unique([creatorId, achievementId])
+  @@map("creator_achievements")
+}
+
+model CreatorSetting {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()"))
+  creatorId             String                @unique @map("creator_id")
+  creator               Creator               @relation(fields: [creatorId], references: [id])
+  
+  isMediaShareEnabled   Boolean?              @map("is_media_share_enabled")
+  isSoundEnabled        Boolean?              @map("is_sound_enabled")
+  minAlertAmount        Decimal?              @db.Decimal(12, 2) @map("min_alert_amount")
+  
+  quickAmounts          CreatorQuickAmount[]
+  paymentMethods        CreatorPaymentMethod[]
+
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  @@map("creator_settings")
+}
+
+model CreatorQuickAmount {
+  id          String         @id @default(dbgenerated("gen_random_uuid()"))
+  settingId   String         @map("setting_id")
+  setting     CreatorSetting @relation(fields: [settingId], references: [id])
+  amount      Int
+  
+  rowOrder    Int?           @map("row_order")
+
+  @@map("creator_quick_amounts")
+}
+
+model PaymentProvider {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()"))
+  key            String                 @unique // e.g., 'QRIS', 'PAYPAL'
+  name           String
+  description    String?
+  isInternational Boolean               @default(false) @map("is_international")
+  
+  creatorMethods CreatorPaymentMethod[]
+
+  @@map("payment_providers")
+}
+
+model CreatorPaymentMethod {
+  id          String          @id @default(dbgenerated("gen_random_uuid()"))
+  settingId   String          @map("setting_id")
+  setting     CreatorSetting  @relation(fields: [settingId], references: [id])
+  providerId  String          @map("provider_id")
+  provider    PaymentProvider @relation(fields: [providerId], references: [id])
+  isEnabled   Boolean         @default(true) @map("is_enabled")
+
+  @@unique([settingId, providerId])
+  @@map("creator_payment_methods")
+}
+
+
+model SoundBoard {
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  name      String
+  duration  String?  // e.g., '0:02'
+  price     Decimal  @db.Decimal(12, 2)
+  audioUrl  String   @map("audio_url")
+  creatorId String   @map("creator_id")
+  creator   Creator  @relation(fields: [creatorId], references: [id])
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sound_boards")
+}

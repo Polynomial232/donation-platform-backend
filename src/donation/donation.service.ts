@@ -90,6 +90,7 @@ export class DonationService {
             const updatedGoal = await this.goalService.incrementProgress(
                 donation.recipientId,
                 Number(donation.amount),
+                donation.id,
             );
 
             if (updatedGoal) {

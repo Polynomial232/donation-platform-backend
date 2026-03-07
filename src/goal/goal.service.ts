@@ -5,37 +5,48 @@ import { PrismaService } from '../prisma/prisma.service';
 export class GoalService {
     constructor(private prisma: PrismaService) { }
 
-    async createGoal(userId: string, data: any) {
+    async createGoal(creatorId: string, data: any) {
         return this.prisma.goal.create({
             data: {
                 ...data,
-                userId,
+                creatorId,
             },
         });
     }
 
-    async getGoals(userId: string) {
+    async getGoals(creatorId: string) {
         return this.prisma.goal.findMany({
-            where: { userId },
+            where: { creatorId },
+            include: {
+                _count: {
+                    select: { donations: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
         });
     }
 
-    async getActiveGoal(userId: string) {
+    async getActiveGoal(creatorId: string) {
         return this.prisma.goal.findFirst({
-            where: { userId, isActive: true },
+            where: { creatorId, isActive: true },
             orderBy: { createdAt: 'desc' },
+            include: {
+                _count: {
+                    select: { donations: true }
+                }
+            }
         });
     }
 
-    async updateGoal(id: string, userId: string, data: any) {
+    async updateGoal(id: string, creatorId: string, data: any) {
         return this.prisma.goal.updateMany({
-            where: { id, userId },
+            where: { id, creatorId },
             data,
         });
     }
 
-    async incrementProgress(userId: string, amount: number) {
-        const activeGoal = await this.getActiveGoal(userId);
+    async incrementProgress(creatorId: string, amount: number, donationId?: string) {
+        const activeGoal = await this.getActiveGoal(creatorId);
         if (!activeGoal) return null;
 
         return this.prisma.goal.update({
@@ -44,7 +55,15 @@ export class GoalService {
                 currentAmount: {
                     increment: amount,
                 },
+                donations: donationId ? {
+                    connect: { id: donationId }
+                } : undefined
             },
+            include: {
+                _count: {
+                    select: { donations: true }
+                }
+            }
         });
     }
 }

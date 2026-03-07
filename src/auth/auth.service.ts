@@ -23,8 +23,11 @@ export class AuthService {
                     username: dto.username,
                     password: hashedPassword,
                     displayName: dto.display_name,
-                    profile: {
-                        create: {},
+                    creator: {
+                        create: {
+                            username: dto.username,
+                            displayName: dto.display_name || dto.username,
+                        },
                     },
                 },
             });

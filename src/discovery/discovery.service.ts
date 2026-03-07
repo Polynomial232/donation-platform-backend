@@ -364,29 +364,56 @@ export class DiscoveryService {
             select: { id: true },
           }
           : false,
-        user: {
+        socialLinks: true,
+        settings: {
           select: {
-            profile: {
+            isMediaShareEnabled: true,
+            isSoundEnabled: true,
+            minAlertAmount: true,
+            quickAmounts: {
+              orderBy: { rowOrder: 'asc' },
+              select: { amount: true },
+            },
+            paymentMethods: {
+              where: { isEnabled: true },
               select: {
-                bio: true,
-                socialLinks: true,
+                provider: {
+                  select: {
+                    key: true,
+                    name: true,
+                    description: true,
+                    isInternational: true,
+                  },
+                },
               },
             },
-            goals: {
-              where: { isActive: true },
-              take: 1,
-              orderBy: { createdAt: 'desc' },
-              select: {
-                title: true,
-                currentAmount: true,
-                targetAmount: true,
-              },
-            },
+          },
+        },
+        goals: {
+          where: { isActive: true },
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            title: true,
+            currentAmount: true,
+            targetAmount: true,
+            _count: {
+              select: { donations: true }
+            }
           },
         },
         sections: {
           where: { isEnabled: true },
           orderBy: { rowOrder: 'asc' },
+        },
+        soundBoard: {
+          select: {
+            id: true,
+            name: true,
+            duration: true,
+            price: true,
+            audioUrl: true,
+          },
         },
       },
     });
@@ -395,28 +422,182 @@ export class DiscoveryService {
       throw new Error('Creator not found');
     }
 
-    const { user, followers, sections, ...rest } = creator;
-    const goal = user.goals[0] || null;
+    const { followers, sections, goals, settings, ...rest } = creator;
+    const goal = goals[0] || null;
 
     return {
       profile: {
         ...rest,
-        description: user.profile?.bio || rest.bio,
+        description: rest.bio,
         isFollowing: !!followers?.length,
-        socials: user.profile?.socialLinks ? Object.entries(user.profile.socialLinks).map(([platform, url]) => ({ platform, url })) : [],
-        goal: goal ? {
-          title: goal.title,
-          currentAmount: Number(goal.currentAmount),
-          targetAmount: Number(goal.targetAmount),
-        } : null,
+        socials: rest.socialLinks ? Object.entries(rest.socialLinks as any).map(([platform, url]) => ({ platform, url: url as string })) : [],
       },
-      sections: sections.map(section => ({
-        id: section.id,
-        type: section.type,
-        title: section.title,
-        isEnabled: section.isEnabled,
-        data: section.data,
-      })),
+      settings: {
+        isMediaShareEnabled: settings?.isMediaShareEnabled,
+        isSoundEnabled: settings?.isSoundEnabled,
+        minAlertAmount: Number(settings?.minAlertAmount),
+        fastAmounts: settings?.quickAmounts.map(qa => qa.amount),
+        paymentMethods: settings?.paymentMethods.map(pm => ({
+          key: pm.provider.key,
+          name: pm.provider.name,
+          description: pm.provider.description,
+          isInternational: pm.provider.isInternational,
+        })),
+      },
+      soundBoard: settings?.isSoundEnabled ? (creator as any).soundBoard.map(s => ({
+        ...s,
+        price: Number(s.price),
+      })) : [],
+      sections: await Promise.all(
+        sections.map(async (section) => {
+          let data = section.data;
+
+          if (section.type === 'RECENT_ACTIVITY') {
+            const recentDonations = await this.prisma.donation.findMany({
+              where: {
+                recipientId: creator.id,
+                status: 'SUCCESS',
+              },
+              take: 10,
+              orderBy: { createdAt: 'desc' },
+              select: {
+                donorName: true,
+                amount: true,
+                message: true,
+                createdAt: true,
+                mediaUrl: true,
+                mediaType: true,
+                donor: {
+                  select: {
+                    avatarUrl: true
+                  }
+                }
+              },
+            });
+
+            data = recentDonations.map((donation) => ({
+              ...donation,
+              amount: Number(donation.amount),
+              createdAt: donation.createdAt.toISOString(),
+              donorAvatar: donation.donor?.avatarUrl || null,
+            })) as any;
+          }
+
+          if (section.type === 'COMMUNITY_QUEST') {
+            const activeGoal = goal;
+            if (activeGoal) {
+              data = {
+                title: activeGoal.title,
+                currentAmount: Number(activeGoal.currentAmount),
+                targetAmount: Number(activeGoal.targetAmount),
+                percentage: (Number(activeGoal.currentAmount) / Number(activeGoal.targetAmount)) * 100,
+                participantsCount: activeGoal._count?.donations || 0,
+              } as any;
+            } else {
+              data = null
+            }
+          }
+
+          if (section.type === 'PINNED_WIDGET') {
+            const pinnedDonations = await this.prisma.donation.findMany({
+              where: {
+                recipientId: creator.id,
+                status: 'SUCCESS',
+                isPinned: true,
+              },
+              orderBy: { createdAt: 'desc' },
+              select: {
+                donorName: true,
+                amount: true,
+                message: true,
+                createdAt: true,
+                mediaUrl: true,
+                mediaType: true,
+                donor: {
+                  select: {
+                    avatarUrl: true
+                  }
+                }
+              },
+            });
+
+            data = pinnedDonations.map((donation) => ({
+              ...donation,
+              amount: Number(donation.amount),
+              createdAt: donation.createdAt.toISOString(),
+              donorAvatar: donation.donor?.avatarUrl || null,
+            })) as any;
+          }
+
+          if (section.type === 'ACHIEVEMENTS') {
+            const achievements = await this.prisma.creatorAchievement.findMany({
+              where: {
+                creatorId: creator.id,
+              },
+              include: {
+                achievement: true,
+              },
+              orderBy: { earnedAt: 'desc' },
+            });
+
+            data = achievements.map((ca) => ({
+              id: ca.achievement.id,
+              name: ca.achievement.name,
+              description: ca.achievement.description,
+              imageUrl: ca.achievement.imageUrl,
+              earnedAt: ca.earnedAt.toISOString(),
+            })) as any;
+          }
+
+          if (section.type === 'TOP_SUPPORTERS') {
+            const topSupportersRaw = await this.prisma.donation.groupBy({
+              by: ['donorName', 'donorId'],
+              where: {
+                recipientId: creator.id,
+                status: 'SUCCESS',
+              },
+              _sum: {
+                amount: true,
+              },
+              orderBy: {
+                _sum: {
+                  amount: 'desc',
+                },
+              },
+              take: 5,
+            });
+
+            // Fetch donor avatars for registered users
+            const donorIds = topSupportersRaw
+              .map(s => s.donorId)
+              .filter((id): id is string => id !== null);
+
+            const donors = await this.prisma.user.findMany({
+              where: { id: { in: donorIds } },
+              select: { id: true, avatarUrl: true }
+            });
+
+            const avatarMap = donors.reduce((acc, d) => {
+              acc[d.id] = d.avatarUrl;
+              return acc;
+            }, {} as Record<string, string | null>);
+
+            data = topSupportersRaw.map((supporter) => ({
+              donorName: supporter.donorName,
+              totalAmount: Number(supporter._sum.amount),
+              avatarUrl: supporter.donorId ? avatarMap[supporter.donorId] : null,
+            })) as any;
+          }
+
+          return {
+            id: section.id,
+            type: section.type,
+            title: section.title,
+            isEnabled: section.isEnabled,
+            data: data,
+          };
+        }),
+      ),
     };
   }
 }

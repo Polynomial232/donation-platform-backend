@@ -11,7 +11,7 @@ export class ProfileService {
                 id: userId,
             },
             include: {
-                profile: true,
+                creator: true,
             },
         });
 
@@ -29,7 +29,7 @@ export class ProfileService {
             },
             data: {
                 displayName: display_name,
-                profile: {
+                creator: {
                     update: {
                         bio,
                         notificationSettings: notification_settings,
@@ -38,7 +38,7 @@ export class ProfileService {
                 },
             },
             include: {
-                profile: true,
+                creator: true,
             },
         });
     }

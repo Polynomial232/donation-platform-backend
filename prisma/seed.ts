@@ -11,6 +11,20 @@ const prisma = new PrismaClient({
 async function main() {
     console.log('Seeding data...');
 
+    // Create Payment Providers
+    const paymentProviders = await Promise.all([
+        prisma.paymentProvider.upsert({
+            where: { key: 'QRIS' },
+            update: {},
+            create: { key: 'QRIS', name: 'GoPay, OVO, Dana', isInternational: false }
+        }),
+        prisma.paymentProvider.upsert({
+            where: { key: 'PAYPAL' },
+            update: {},
+            create: { key: 'PAYPAL', name: 'International', isInternational: true }
+        }),
+    ]);
+
     // Create 5 categories
     const categories = await Promise.all(
         Array.from({ length: 5 }).map(async () => {
@@ -54,8 +68,10 @@ async function main() {
                 password: 'hashed_password_here',
                 displayName: faker.person.fullName(),
                 avatarUrl: faker.image.avatar(),
-                profile: {
+                creator: {
                     create: {
+                        username: faker.internet.username(),
+                        displayName: faker.company.name(),
                         bio: faker.lorem.paragraph(),
                         notificationSettings: {
                             email: true,
@@ -65,13 +81,6 @@ async function main() {
                             twitter: `https://twitter.com/${faker.internet.username()}`,
                             web: faker.internet.url(),
                         },
-                    },
-                },
-                creator: {
-                    create: {
-                        username: faker.internet.username(),
-                        displayName: faker.company.name(),
-                        bio: faker.company.catchPhrase(),
                         isVerified: faker.datatype.boolean(),
                         categories: {
                             connect: [
@@ -113,7 +122,55 @@ async function main() {
                                     data: { content: 'Next cosplay stream on Friday!' },
                                     rowOrder: 4,
                                 },
+                                {
+                                    type: 'TOP_SUPPORTERS',
+                                    title: 'Top Supporters',
+                                    data: [],
+                                    rowOrder: 5,
+                                },
                             ],
+                        },
+                        goals: {
+                            create: [
+                                {
+                                    title: faker.company.catchPhrase(),
+                                    targetAmount: faker.number.int({ min: 1000000, max: 10000000 }),
+                                    currentAmount: faker.number.int({ min: 0, max: 1000000 }),
+                                    isActive: true,
+                                },
+                            ],
+                        },
+                        soundBoard: {
+                            create: [
+                                { name: 'Ara Ara~', duration: '0:02', price: 10000, audioUrl: 'https://www.myinstants.com/media/sounds/ara-ara-ara.mp3' },
+                                { name: 'Yamete Kudasai!', duration: '0:03', price: 20000, audioUrl: 'https://www.myinstants.com/media/sounds/yamete_kudasai.mp3' },
+                                { name: 'Bruh Moment', duration: '0:01', price: 5000, audioUrl: 'https://www.myinstants.com/media/sounds/movie_1.mp3' },
+                                { name: 'Windows XP Shutdown', duration: '0:04', price: 15000, audioUrl: 'https://www.myinstants.com/media/sounds/windows-xp-shutdown.mp3' },
+                                { name: 'Vine Boom', duration: '0:01', price: 5000, audioUrl: 'https://www.myinstants.com/media/sounds/vine-boom.mp3' },
+                                { name: 'FBI Open Up!', duration: '0:03', price: 25000, audioUrl: 'https://www.myinstants.com/media/sounds/fbi-open-up-sfx.mp3' },
+                            ]
+                        },
+                        settings: {
+                            create: {
+                                isMediaShareEnabled: true,
+                                isSoundEnabled: true,
+                                minAlertAmount: 5000,
+                                quickAmounts: {
+                                    create: [
+                                        { amount: 5000, rowOrder: 0 },
+                                        { amount: 10000, rowOrder: 1 },
+                                        { amount: 20000, rowOrder: 2 },
+                                        { amount: 50000, rowOrder: 3 },
+                                        { amount: 100000, rowOrder: 4 },
+                                    ],
+                                },
+                                paymentMethods: {
+                                    create: paymentProviders.map(p => ({
+                                        providerId: p.id,
+                                        isEnabled: true,
+                                    })),
+                                },
+                            },
                         },
                     },
                 },
@@ -125,6 +182,25 @@ async function main() {
     }
 
     const creators = users.map(u => u.creator).filter(Boolean);
+
+    // Create 3 master achievements
+    const masterAchievements = await Promise.all([
+        prisma.achievement.upsert({
+            where: { name: 'First Support' },
+            update: {},
+            create: { name: 'First Support', description: 'Received the first donation', imageUrl: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd', category: 'DONATION' }
+        }),
+        prisma.achievement.upsert({
+            where: { name: 'Rising Star' },
+            update: {},
+            create: { name: 'Rising Star', description: 'Reached 10 donations', imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926', category: 'MILESTONE' }
+        }),
+        prisma.achievement.upsert({
+            where: { name: 'Community Hero' },
+            update: {},
+            create: { name: 'Community Hero', description: 'Completed a Community Quest', imageUrl: 'https://images.unsplash.com/photo-1542382257-80dedb725088', category: 'COMMUNITY_QUEST' }
+        }),
+    ]);
 
     // Create 5 donations
     if (creators.length > 0) {
@@ -139,12 +215,31 @@ async function main() {
                     donorName: donor.displayName || faker.person.fullName(),
                     message: faker.lorem.sentence(),
                     status: 'SUCCESS',
-                    recipientId: recipient!.id, // Gunakan non-null assertion
+                    recipientId: recipient!.id,
                     donorId: donor.id,
+                    isPinned: faker.datatype.boolean(0.2), // 20% chance to be pinned
                 },
             });
+
+            // Assign a random achievement to the recipient (30% chance)
+            if (faker.datatype.boolean(0.3)) {
+                const randomAchievement = masterAchievements[Math.floor(Math.random() * masterAchievements.length)];
+                await prisma.creatorAchievement.upsert({
+                    where: {
+                        creatorId_achievementId: {
+                            creatorId: recipient!.id,
+                            achievementId: randomAchievement.id,
+                        },
+                    },
+                    update: {},
+                    create: {
+                        creatorId: recipient!.id,
+                        achievementId: randomAchievement.id,
+                    },
+                });
+            }
         }
-        console.log('Created 5 donations');
+        console.log('Created 50 donations and assigned achievements');
     }
 
     // Create site settings
