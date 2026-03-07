@@ -131,7 +131,7 @@ export class DiscoveryService {
         isVerified: true,
         isLive: true,
         categories: {
-          select: { name: true },
+          select: { category: { select: { name: true } } },
         },
         followers: userId
           ? {
@@ -171,7 +171,7 @@ export class DiscoveryService {
         isVerified: true,
         isLive: true,
         categories: {
-          select: { name: true },
+          select: { category: { select: { name: true } } },
         },
         followers: userId
           ? {
@@ -195,7 +195,7 @@ export class DiscoveryService {
         ...rest,
         isFollowing: !!followers?.length,
         isHot: (_count?.receivedDonations || 0) >= 2, // HOT if 2+ successful donations (for demo)
-        categories: categories.map((c: any) => c.name),
+        categories: categories.map((c: any) => c.category.name),
       };
     };
 
@@ -223,7 +223,7 @@ export class DiscoveryService {
     if (category && category !== 'All Creators') {
       where.categories = {
         some: {
-          name: category,
+          category: { name: category },
         },
       };
     }
@@ -244,7 +244,7 @@ export class DiscoveryService {
           isVerified: true,
           isLive: true,
           categories: {
-            select: { name: true },
+            select: { category: { select: { name: true } } },
           },
           followers: userId
             ? {
@@ -269,7 +269,7 @@ export class DiscoveryService {
         ...rest,
         isFollowing: !!followers?.length,
         isHot: (_count?.receivedDonations || 0) >= 2,
-        categories: categories?.map((c: any) => c.name) || [],
+        categories: categories?.map((c: any) => c.category.name) || [],
       };
     });
 
@@ -299,7 +299,7 @@ export class DiscoveryService {
     if (category && category !== 'All Creators') {
       where.categories = {
         some: {
-          name: category,
+          category: { name: category },
         },
       };
     }
@@ -317,7 +317,7 @@ export class DiscoveryService {
         isVerified: true,
         isLive: true,
         categories: {
-          select: { name: true },
+          select: { category: { select: { name: true } } },
         },
         followers: userId
           ? {
@@ -341,7 +341,7 @@ export class DiscoveryService {
         ...rest,
         isFollowing: !!followers?.length,
         isHot: (_count?.receivedDonations || 0) >= 2,
-        categories: categories?.map((c: any) => c.name) || [],
+        categories: categories?.map((c: any) => c.category.name) || [],
       };
     });
   }
@@ -371,7 +371,6 @@ export class DiscoveryService {
             isSoundEnabled: true,
             minAlertAmount: true,
             quickAmounts: {
-              orderBy: { rowOrder: 'asc' },
               select: { amount: true },
             },
             paymentMethods: {
@@ -404,7 +403,6 @@ export class DiscoveryService {
         },
         sections: {
           where: { isEnabled: true },
-          orderBy: { rowOrder: 'asc' },
         },
         soundBoard: {
           select: {
@@ -483,7 +481,7 @@ export class DiscoveryService {
             })) as any;
           }
 
-          if (section.type === 'COMMUNITY_QUEST') {
+          if (section.type === 'GOALS') {
             const activeGoal = goal;
             if (activeGoal) {
               data = {

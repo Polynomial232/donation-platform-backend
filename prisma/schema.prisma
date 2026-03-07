@@ -45,6 +45,17 @@ enum QueueStatus {
   @@map("queue_status")
 }
 
+enum SectionType {
+  GOALS
+  ACHIEVEMENTS
+  PINNED_WIDGET
+  RECENT_ACTIVITY
+  CUSTOM_CONTENT
+  TOP_SUPPORTERS
+
+  @@map("section_type")
+}
+
 model User {
   id          String    @id @default(dbgenerated("gen_random_uuid()"))
   email       String    @unique
@@ -79,7 +90,7 @@ model Creator {
   isVerified        Boolean   @default(false) @map("is_verified")
   isLive            Boolean   @default(false) @map("is_live")
   
-  categories        Category[]
+  categories        CreatorCategory[]
   followers         Follow[]
   receivedDonations Donation[] @relation("RecipientRelation")
   sections          CreatorSection[]
@@ -103,11 +114,10 @@ model CreatorSection {
   id         String   @id @default(dbgenerated("gen_random_uuid()"))
   creatorId  String   @map("creator_id")
   creator    Creator  @relation(fields: [creatorId], references: [id])
-  type       String
+  type       SectionType
   title      String
   isEnabled  Boolean? @map("is_enabled")
   data       Json
-  rowOrder   Int?     @map("row_order")
   
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -118,12 +128,25 @@ model CreatorSection {
 model Category {
   id         String    @id @default(dbgenerated("gen_random_uuid()"))
   name       String    @unique
-  creators   Creator[]
+  creators   CreatorCategory[]
   
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@map("categories")
+}
+
+model CreatorCategory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  creatorId  String   @map("creator_id")
+  creator    Creator  @relation(fields: [creatorId], references: [id])
+  categoryId String   @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([creatorId, categoryId])
+  @@map("creator_categories")
 }
 
 model Follow {
@@ -324,8 +347,6 @@ model CreatorQuickAmount {
   settingId   String         @map("setting_id")
   setting     CreatorSetting @relation(fields: [settingId], references: [id])
   amount      Int
-  
-  rowOrder    Int?           @map("row_order")
 
   @@map("creator_quick_amounts")
 }
