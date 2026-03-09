@@ -156,7 +156,13 @@ async function main() {
                         },
                         settings: {
                             create: {
-                                isMediaShareEnabled: faker.datatype.boolean(),
+                                mediaShareSettings: {
+                                    youtube: { is_enabled: faker.datatype.boolean(), max_duration_seconds: faker.number.int({ min: 10, max: 120 }), price_per_second: 500 },
+                                    tiktok: { is_enabled: faker.datatype.boolean(), max_duration_seconds: faker.number.int({ min: 10, max: 60 }), price_per_second: 500 },
+                                    reels: { is_enabled: faker.datatype.boolean(), max_duration_seconds: faker.number.int({ min: 10, max: 60 }), price_per_second: 500 },
+                                    voice: { is_enabled: faker.datatype.boolean(), max_duration_seconds: faker.number.int({ min: 10, max: 120 }), price_per_second: 500 },
+                                    gif: { is_enabled: faker.datatype.boolean() }
+                                },
                                 isSoundEnabled: faker.datatype.boolean(),
                                 minAlertAmount: 5_000,
                                 quickAmounts: {
@@ -296,10 +302,10 @@ async function main() {
         {
             key: 'LANDING_HERO',
             value: {
-                imageUrl: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987',
+                image_url: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987',
                 title: 'Jembatan Dukungan Kreator',
                 subtitle: 'Platform donasi paling simpel, transparan, dan penuh kasih untuk kreator favoritmu.',
-                searchPlaceholder: 'Cari kreator favoritmu...',
+                search_placeholder: 'Cari kreator favoritmu...',
             },
             description: 'Landing page hero section settings',
         },
@@ -330,15 +336,15 @@ async function main() {
                     { label: 'Sound', icon: 'Volume2' },
                     { label: 'Lelang', icon: 'Gavel' },
                 ],
-                placeholderName: 'Nama samaran',
-                placeholderMessage: 'Tulis dukungan hangatmu...',
+                placeholder_name: 'Nama samaran',
+                placeholder_message: 'Tulis dukungan hangatmu...',
             },
             description: 'Landing page demo section settings',
         },
         {
             key: 'NAVBAR',
             value: {
-                logoText: 'DukuNasia',
+                logo_text: 'DukuNasia',
                 links: [
                     { label: 'Explore', url: '/explore' },
                     { label: 'Following', url: '/following' },
@@ -372,6 +378,13 @@ async function main() {
                 copyright: '© 2024 DUKUNASIA • SPREADING LOVE 💜',
             },
             description: 'Footer settings',
+        },
+        {
+            key: 'AUTH_SETTINGS',
+            value: {
+                is_google_login_enabled: true,
+            },
+            description: 'Authentication settings for Login and Register pages',
         },
     ];
 

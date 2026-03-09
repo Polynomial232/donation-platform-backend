@@ -62,10 +62,10 @@ export class DiscoveryController {
         @Res({ passthrough: true }) res: express.Response,
     ) {
         try {
-            const { data, meta } = await this.discoveryService.listCreators(dto);
+            const { data, metadata } = await this.discoveryService.listCreators(dto);
             return ResponseHelper.success(res, {
-                data: data,
-                metadata: meta,
+                data,
+                metadata,
                 message: 'Creators retrieved successfully',
             });
         } catch (error) {
@@ -91,6 +91,21 @@ export class DiscoveryController {
             return ResponseHelper.error(res, {
                 message: error.message || 'Failed to retrieve creator detail',
                 status,
+            });
+        }
+    }
+
+    @Get('auth-settings')
+    async getAuthSettings(@Res({ passthrough: true }) res: express.Response) {
+        try {
+            const authSettings = await this.discoveryService.getAuthSettings();
+            return ResponseHelper.success(res, {
+                data: authSettings,
+                message: 'Auth settings retrieved successfully',
+            });
+        } catch (error) {
+            return ResponseHelper.error(res, {
+                message: error.message || 'Failed to retrieve auth settings',
             });
         }
     }

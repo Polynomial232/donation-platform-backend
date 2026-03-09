@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, IsUrl } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateSoundBoardDto {
@@ -17,7 +17,9 @@ export class CreateSoundBoardDto {
 
     @IsString()
     @IsNotEmpty()
-    audioUrl: string;
+    @IsUrl()
+    @IsOptional()
+    audio_url: string;
 }
 
 export class UpdateSoundBoardDto {
@@ -37,5 +39,6 @@ export class UpdateSoundBoardDto {
 
     @IsString()
     @IsOptional()
-    audioUrl?: string;
+    @IsUrl()
+    audio_url?: string;
 }

@@ -5,17 +5,32 @@ import { PrismaService } from '../prisma/prisma.service';
 export class GoalService {
     constructor(private prisma: PrismaService) { }
 
+    private formatGoal(g: any) {
+        return {
+            id: g.id,
+            title: g.title,
+            target_amount: Number(g.targetAmount),
+            current_amount: Number(g.currentAmount),
+            start_date: g.startDate,
+            end_date: g.endDate,
+            is_active: g.isActive,
+            participants_count: g._count?.donations || 0,
+            percentage: (Number(g.currentAmount) / Number(g.targetAmount)) * 100,
+        };
+    }
+
     async createGoal(creatorId: string, data: any) {
-        return this.prisma.goal.create({
+        const goal = await this.prisma.goal.create({
             data: {
                 ...data,
                 creatorId,
             },
         });
+        return this.formatGoal(goal);
     }
 
     async getGoals(creatorId: string) {
-        return this.prisma.goal.findMany({
+        const goals = await this.prisma.goal.findMany({
             where: { creatorId },
             include: {
                 _count: {
@@ -24,10 +39,11 @@ export class GoalService {
             },
             orderBy: { createdAt: 'desc' }
         });
+        return goals.map(g => this.formatGoal(g));
     }
 
     async getActiveGoal(creatorId: string) {
-        return this.prisma.goal.findFirst({
+        const goal = await this.prisma.goal.findFirst({
             where: { creatorId, isActive: true },
             orderBy: { createdAt: 'desc' },
             include: {
@@ -36,6 +52,7 @@ export class GoalService {
                 }
             }
         });
+        return goal ? this.formatGoal(goal) : null;
     }
 
     async updateGoal(id: string, creatorId: string, data: any) {
@@ -46,10 +63,13 @@ export class GoalService {
     }
 
     async incrementProgress(creatorId: string, amount: number, donationId?: string) {
-        const activeGoal = await this.getActiveGoal(creatorId);
+        const activeGoal = await this.prisma.goal.findFirst({
+            where: { creatorId, isActive: true },
+            orderBy: { createdAt: 'desc' },
+        });
         if (!activeGoal) return null;
 
-        return this.prisma.goal.update({
+        const updated = await this.prisma.goal.update({
             where: { id: activeGoal.id },
             data: {
                 currentAmount: {
@@ -65,5 +85,7 @@ export class GoalService {
                 }
             }
         });
+
+        return this.formatGoal(updated);
     }
 }
