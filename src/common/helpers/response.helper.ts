@@ -2,7 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 import * as express from 'express';
 
 export interface ApiResponse<T = any> {
-    status_code: number;
+    success: boolean;
     message: string;
     data: T;
     metadata: any;
@@ -25,7 +25,7 @@ export class ResponseHelper {
     ): ApiResponse<T> {
         res.status(status);
         return {
-            status_code: status,
+            success: true,
             message,
             data,
             metadata,
@@ -46,7 +46,7 @@ export class ResponseHelper {
     ): ApiResponse {
         res.status(status);
         return {
-            status_code: status,
+            success: false,
             message,
             data,
             metadata: null,
