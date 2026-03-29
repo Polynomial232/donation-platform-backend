@@ -8,12 +8,13 @@ export class DiscoveryService {
 
   async getLandingData(userId?: string) {
     const rawTrendingCreators = await this.prisma.creator.findMany({
-      take: 3,
+      take: 10,
       select: {
         id: true,
         username: true,
         displayName: true,
         avatarUrl: true,
+        bannerUrl: true,
         followers: userId
           ? {
               where: { userId: userId },
@@ -38,8 +39,14 @@ export class DiscoveryService {
       username: creator.username,
       display_name: creator.displayName,
       avatar_url: creator.avatarUrl,
+      banner_url: creator.bannerUrl,
       is_following: !!creator.followers?.length,
     }));
+
+    const [totalDonations, totalCreators] = await Promise.all([
+      this.prisma.donation.count({ where: { status: 'SUCCESS' } }),
+      this.prisma.creator.count(),
+    ]);
 
     const rawSiteSettings = await this.prisma.siteSetting.findMany();
     const settingsMap = rawSiteSettings.reduce(
@@ -49,23 +56,23 @@ export class DiscoveryService {
 
     const fallbackHero = {
       image_url: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987',
-      title: 'Jembatan Dukungan Kreator',
-      subtitle: 'Platform donasi paling simpel, transparan, dan penuh kasih untuk kreator favoritmu.',
-      search_placeholder: 'Cari kreator favoritmu...',
+      title: 'A Royal Bridge for Creative Sovereigns',
+      subtitle: 'The most noble, transparent, and benevolent tribute platform for your favored lords and ladies of the arts.',
+      search_placeholder: 'Search for your favored creator...',
     };
 
     const fallbackFeatures = {
-      title: 'Kenapa DukuNasia?',
+      title: 'Why The Royal Bridge?',
       items: [
         {
-          icon: 'Lightning',
-          title: 'Cepat & Instan',
-          description: 'Dukungan sampai dalam hitungan detik.',
+          icon: 'Shield',
+          title: 'Imperial Security',
+          description: 'Safeguarded by the finest guards of our digital realm.',
         },
         {
-          icon: 'Shield',
-          title: '100% Aman',
-          description: 'Keamanan berlapis untuk tiap transaksi.',
+          icon: 'Heart',
+          title: 'Noble Unity',
+          description: 'Strengthening the bond between the crown and its subjects.',
         },
       ],
     };
@@ -110,6 +117,10 @@ export class DiscoveryService {
 
     return {
       trending_creators: trendingCreators,
+      stats: {
+        total_donations: totalDonations,
+        total_creators: totalCreators,
+      },
       hero: settingsMap['LANDING_HERO'] ?? fallbackHero,
       features: settingsMap['LANDING_FEATURES'] ?? fallbackFeatures,
       demo: settingsMap['LANDING_DEMO'] ?? fallbackDemo,
