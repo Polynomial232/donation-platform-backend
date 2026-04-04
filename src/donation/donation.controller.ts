@@ -34,7 +34,7 @@ export class DonationController {
             const result = await this.donationService.getHistory(userId, query);
             return ResponseHelper.success(res, {
                 data: result.data || result,
-                metadata: result.meta || null,
+                metadata: result.metadata || null,
                 message: 'Donation history retrieved successfully',
             });
         } catch (error) {

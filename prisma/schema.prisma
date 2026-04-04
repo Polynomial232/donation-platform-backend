@@ -63,6 +63,11 @@ model User {
   password    String
   displayName String?   @map("display_name")
   avatarUrl   String?   @map("avatar_url")
+  isActive    Boolean   @default(false) @map("is_active")
+  activationToken String?  @map("activation_token")
+  activationExpiresAt DateTime? @map("activation_expires_at")
+  resetPasswordToken String?  @map("reset_password_token")
+  resetPasswordExpiresAt DateTime? @map("reset_password_expires_at")
   
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -330,6 +335,8 @@ model CreatorSetting {
   creator               Creator               @relation(fields: [creatorId], references: [id])
   
   isMediaShareEnabled   Boolean?              @map("is_media_share_enabled")
+  mediaShareSettings    Json?                 @map("media_share_settings")
+
   isSoundEnabled        Boolean?              @map("is_sound_enabled")
   minAlertAmount        Decimal?              @db.Decimal(12, 2) @map("min_alert_amount")
   

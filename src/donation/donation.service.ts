@@ -15,6 +15,27 @@ export class DonationService {
         private goalService: GoalService,
     ) { }
 
+    private formatDonation(d: any) {
+        return {
+            id: d.id,
+            external_id: d.externalId,
+            amount: Number(d.amount),
+            currency: d.currency,
+            donor_name: d.donorName,
+            message: d.message,
+            status: d.status,
+            payment_url: d.paymentUrl,
+            payment_method: d.paymentMethod,
+            recipient_id: d.recipientId,
+            donor_id: d.donorId,
+            media_type: d.mediaType,
+            media_url: d.mediaUrl,
+            is_pinned: d.isPinned,
+            created_at: d.createdAt,
+            updated_at: d.updatedAt,
+        };
+    }
+
     async createDonation(dto: CreateDonationDto) {
         const recipient = await this.prisma.user.findUnique({
             where: { id: dto.recipient_id },
@@ -48,12 +69,14 @@ export class DonationService {
         });
 
         // Update donation with payment URL
-        return this.prisma.donation.update({
+        const updated = await this.prisma.donation.update({
             where: { id: donation.id },
             data: {
                 paymentUrl: (invoice as any).invoiceUrl,
             },
         });
+
+        return this.formatDonation(updated);
     }
 
     async handleWebhook(data: any) {
@@ -96,13 +119,13 @@ export class DonationService {
             if (updatedGoal) {
                 this.gateway.sendGoalUpdate(donation.recipientId, {
                     goalId: updatedGoal.id,
-                    current_amount: Number(updatedGoal.currentAmount),
-                    percentage: (Number(updatedGoal.currentAmount) / Number(updatedGoal.targetAmount)) * 100,
+                    current_amount: Number(updatedGoal.current_amount),
+                    percentage: updatedGoal.percentage,
                 });
             }
         }
 
-        return donation;
+        return this.formatDonation(donation);
     }
 
     async getHistory(userId: string, query: any) {
@@ -128,11 +151,11 @@ export class DonationService {
         ]);
 
         return {
-            data,
-            meta: {
+            data: data.map(d => this.formatDonation(d)),
+            metadata: {
                 total,
                 page: Number(page),
-                lastPage: Math.ceil(total / limit),
+                last_page: Math.ceil(total / limit),
             },
         };
     }

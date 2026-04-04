@@ -12,10 +12,9 @@ export class AuthController {
     async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: express.Response) {
         try {
             const data = await this.authService.register(dto);
-            this.setCookie(res, data.access_token);
             return ResponseHelper.success(res, {
                 data,
-                message: 'Registration successful',
+                message: data.message,
                 status: HttpStatus.CREATED,
             });
         } catch (error) {
@@ -26,7 +25,22 @@ export class AuthController {
         }
     }
 
-    @HttpCode(HttpStatus.OK)
+    @Post('activate')
+    async activate(@Body('token') token: string, @Res({ passthrough: true }) res: express.Response) {
+        try {
+            const data = await this.authService.activateAccount(token);
+            return ResponseHelper.success(res, {
+                data,
+                message: data.message,
+            });
+        } catch (error) {
+            return ResponseHelper.error(res, {
+                message: error.message || 'Activation failed',
+                status: error.status,
+            });
+        }
+    }
+
     @Post('login')
     async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: express.Response) {
         try {
@@ -39,6 +53,38 @@ export class AuthController {
         } catch (error) {
             return ResponseHelper.error(res, {
                 message: error.message || 'Login failed',
+                status: error.status,
+            });
+        }
+    }
+
+    @Post('forgot-password')
+    async forgotPassword(@Body('email') email: string, @Res({ passthrough: true }) res: express.Response) {
+        try {
+            const data = await this.authService.forgotPassword(email);
+            return ResponseHelper.success(res, {
+                data,
+                message: data.message,
+            });
+        } catch (error) {
+            return ResponseHelper.error(res, {
+                message: error.message || 'Failed to request password reset',
+                status: error.status,
+            });
+        }
+    }
+
+    @Post('reset-password')
+    async resetPassword(@Body('token') token: string, @Body() dto: any, @Res({ passthrough: true }) res: express.Response) {
+        try {
+            const data = await this.authService.resetPassword(token, dto);
+            return ResponseHelper.success(res, {
+                data,
+                message: data.message,
+            });
+        } catch (error) {
+            return ResponseHelper.error(res, {
+                message: error.message || 'Failed to reset password',
                 status: error.status,
             });
         }

@@ -6,11 +6,25 @@ import { CreateSoundBoardDto, UpdateSoundBoardDto } from './dto/sound-board.dto'
 export class SoundBoardService {
     constructor(private prisma: PrismaService) { }
 
+    private formatSound(s: any) {
+        return {
+            id: s.id,
+            name: s.name,
+            duration: s.duration,
+            price: Number(s.price),
+            audio_url: s.audioUrl,
+            creator_id: s.creatorId,
+            created_at: s.createdAt,
+            updated_at: s.updatedAt,
+        };
+    }
+
     async findAllByCreator(creatorId: string) {
-        return this.prisma.soundBoard.findMany({
+        const sounds = await this.prisma.soundBoard.findMany({
             where: { creatorId },
             orderBy: { createdAt: 'desc' },
         });
+        return sounds.map(s => this.formatSound(s));
     }
 
     async findOne(id: string) {
@@ -18,16 +32,20 @@ export class SoundBoardService {
             where: { id },
         });
         if (!sound) throw new NotFoundException('Sound not found');
-        return sound;
+        return this.formatSound(sound);
     }
 
     async create(creatorId: string, dto: CreateSoundBoardDto) {
-        return this.prisma.soundBoard.create({
+        const sound = await this.prisma.soundBoard.create({
             data: {
-                ...dto,
+                name: dto.name,
+                duration: dto.duration,
+                price: dto.price,
+                audioUrl: dto.audio_url,
                 creatorId,
             },
         });
+        return this.formatSound(sound);
     }
 
     async update(id: string, creatorId: string, dto: UpdateSoundBoardDto) {
@@ -38,10 +56,17 @@ export class SoundBoardService {
 
         if (!sound) throw new NotFoundException('Sound not found or unauthorized');
 
-        return this.prisma.soundBoard.update({
+        const updated = await this.prisma.soundBoard.update({
             where: { id },
-            data: dto,
+            data: {
+                name: dto.name,
+                duration: dto.duration,
+                price: dto.price,
+                audioUrl: dto.audio_url,
+            },
         });
+
+        return this.formatSound(updated);
     }
 
     async remove(id: string, creatorId: string) {
@@ -51,9 +76,11 @@ export class SoundBoardService {
 
         if (!sound) throw new NotFoundException('Sound not found or unauthorized');
 
-        return this.prisma.soundBoard.delete({
+        const deleted = await this.prisma.soundBoard.delete({
             where: { id },
         });
+
+        return this.formatSound(deleted);
     }
 
     async testSound(id: string, creatorId: string) {
@@ -67,7 +94,7 @@ export class SoundBoardService {
 
         return {
             message: `Playing ${sound.name} on overlay...`,
-            audioUrl: sound.audioUrl
+            audio_url: sound.audioUrl
         };
     }
 }
