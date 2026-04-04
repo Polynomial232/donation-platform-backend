@@ -9,6 +9,7 @@ import { GetUser } from '../auth/decorator/get-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { ResponseHelper } from '../common/helpers/response.helper';
 import * as express from 'express';
+import * as fs from 'fs';
 
 @UseGuards(JwtGuard)
 @Controller('sound-board')
@@ -125,7 +126,14 @@ export class SoundBoardController {
     @Post('upload')
     @UseInterceptors(FileInterceptor('file', {
         storage: diskStorage({
-            destination: './uploads/sounds',
+            destination: (req, file, cb) => {
+                const uploadDir = process.env.VERCEL ? '/tmp/uploads/sounds' : './uploads/sounds';
+                
+                if (!fs.existsSync(uploadDir)) {
+                    fs.mkdirSync(uploadDir, { recursive: true });
+                }
+                cb(null, uploadDir);
+            },
             filename: (req, file, cb) => {
                 const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
                 return cb(null, `${randomName}${extname(file.originalname)}`);
